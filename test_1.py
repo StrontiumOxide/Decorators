@@ -1,0 +1,66 @@
+import os
+from datetime import datetime as dt
+
+def logger(old_function):
+
+    def new_function(*args, **kwargs):
+
+        result = old_function(*args, **kwargs)
+
+        text = f"""
+Функция "{new_function.__name__}" была вызвана {dt.now().strftime("%d.%m.%Y")} в {dt.now().strftime("%H:%M:%S")} с аргументами:
+1) Позиционными: {args}
+2) Именованными: {kwargs}
+Результат функции: "{result}"
+"""
+        text = text[1:]
+        with open(file="main.log", mode="a", encoding="utf-8-sig") as file:
+            file.write(text + "\n")
+
+        return result
+
+    new_function.__name__ = old_function.__name__
+
+    return new_function
+
+
+def test_1():
+
+    path = 'main.log'
+    if os.path.exists(path):
+        os.remove(path)
+
+    @logger
+    def hello_world():
+        return 'Hello World'
+
+    @logger
+    def summator(a, b=0):
+        return a + b
+
+    @logger
+    def div(a, b):
+        return a / b
+
+    assert 'Hello World' == hello_world(), "Функция возвращает 'Hello World'"
+    result = summator(2, 2)
+    assert isinstance(result, int), 'Должно вернуться целое число'
+    assert result == 4, '2 + 2 = 4'
+    result = div(6, 2)
+    assert result == 3, '6 / 2 = 3'
+    
+    assert os.path.exists(path), 'файл main.log должен существовать'
+
+    summator(4.3, b=2.2)
+    summator(a=0, b=0)
+
+    with open(path, mode="r", encoding="utf-8-sig") as log_file:
+        log_file_content = log_file.read()
+
+    assert 'summator' in log_file_content, 'должно записаться имя функции'
+    for item in (4.3, 2.2, 6.5):
+        assert str(item) in log_file_content, f'{item} должен быть записан в файл'
+
+
+if __name__ == '__main__':
+    test_1()
